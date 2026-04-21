@@ -18,7 +18,6 @@ export const defaultLeagues: LeagueInput[] = [
       CI: 1,
       MI: 1,
       OF: 3,
-      DH: 1,
       SP: 2,
       RP: 2,
       UTIL: 1,
