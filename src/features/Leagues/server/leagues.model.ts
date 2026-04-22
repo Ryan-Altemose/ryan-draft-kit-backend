@@ -101,9 +101,10 @@ const leagueSchema = new Schema<League>(
       '2B': { type: Number, default: 1 },
       '3B': { type: Number, default: 1 },
       SS: { type: Number, default: 1 },
+      CI: { type: Number, default: 1 },
+      MI: { type: Number, default: 1 },
       OF: { type: Number, default: 3 },
-      DH: { type: Number, default: 0 },
-      SP: { type: Number, default: 5 },
+      SP: { type: Number, default: 2 },
       RP: { type: Number, default: 2 },
       UTIL: { type: Number, default: 0 },
       BENCH: { type: Number, default: 0 },
@@ -137,6 +138,10 @@ const leagueSchema = new Schema<League>(
       type: Map,
       of: Number,
     },
+    minorLeagueSlotsPerTeam: {
+      type: Number,
+      min: 0,
+    },
   },
   {
     timestamps: true,
@@ -148,5 +153,5 @@ leagueSchema.index({ format: 1 });
 leagueSchema.index({ draftType: 1 });
 leagueSchema.index({ isDefault: 1 });
 
-export const LeagueModel =
+export const LeagueModel: mongoose.Model<League> =
   mongoose.models.League || mongoose.model<League>('League', leagueSchema);

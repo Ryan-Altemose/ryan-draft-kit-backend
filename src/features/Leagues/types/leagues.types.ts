@@ -6,9 +6,10 @@ export const RosterSlotsSchema = z.object({
   '2B': z.number().int().min(0).default(1),
   '3B': z.number().int().min(0).default(1),
   SS: z.number().int().min(0).default(1),
+  CI: z.number().int().min(0).default(1),
+  MI: z.number().int().min(0).default(1),
   OF: z.number().int().min(0).default(3),
-  DH: z.number().int().min(0).default(0),
-  SP: z.number().int().min(0).default(5),
+  SP: z.number().int().min(0).default(2),
   RP: z.number().int().min(0).default(2),
   UTIL: z.number().int().min(0).default(0),
   BENCH: z.number().int().min(0).default(0),
@@ -81,6 +82,7 @@ export const LeagueSchema = z.object({
   teams: z.array(LeagueTeamSchema).optional(),
   isDefault: z.boolean().default(false),
   categoryWeights: z.record(z.string(), z.number()).optional(),
+  minorLeagueSlotsPerTeam: z.number().int().min(0).optional(),
 });
 
 export const LeagueFiltersSchema = z.object({
