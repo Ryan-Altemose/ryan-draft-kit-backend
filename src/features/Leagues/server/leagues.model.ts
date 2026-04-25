@@ -16,6 +16,23 @@ function isValidTakenPlayers(value: unknown): boolean {
   );
 }
 
+function isValidDraftPicks(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+
+  return value.every(
+    (entry) =>
+      Array.isArray(entry) &&
+      entry.length === 5 &&
+      typeof entry[0] === 'number' &&
+      entry[0] >= 1 &&
+      typeof entry[1] === 'string' &&
+      typeof entry[2] === 'string' &&
+      typeof entry[3] === 'string' &&
+      typeof entry[4] === 'number' &&
+      entry[4] >= 0,
+  );
+}
+
 function isValidTeams(value: unknown): boolean {
   if (!Array.isArray(value)) return false;
 
@@ -120,6 +137,15 @@ const leagueSchema = new Schema<League>(
         validator: isValidTakenPlayers,
         message:
           'taken_players must be [player_id, team_id, position_slot, price] tuples',
+      },
+    },
+    draft_picks: {
+      type: [[Schema.Types.Mixed]],
+      default: [],
+      validate: {
+        validator: isValidDraftPicks,
+        message:
+          'draft_picks must be [pick_number, nominating_team_id, winning_team_id, player_id, salary] tuples',
       },
     },
     teams: {
