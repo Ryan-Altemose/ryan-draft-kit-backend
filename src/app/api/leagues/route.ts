@@ -39,9 +39,22 @@ export async function POST(request: Request) {
     await connectDb();
 
     const payload = LeagueSchema.parse(await request.json());
+    console.log('[leagues:POST] externalId=%s hasDraftStateJson=%s', payload.externalId, Boolean(payload.draftStateJson));
     const league = await leaguesService.upsertLeague(payload);
+    console.log(
+      '[leagues:POST] saved externalId=%s savedHasDraftStateJson=%s',
+      league.externalId,
+      Boolean(league.draftStateJson),
+    );
 
-    return NextResponse.json({ success: true, data: league });
+    return NextResponse.json({
+      success: true,
+      data: league,
+      debug: {
+        receivedHasDraftStateJson: Boolean(payload.draftStateJson),
+        savedHasDraftStateJson: Boolean(league.draftStateJson),
+      },
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Failed to save league';

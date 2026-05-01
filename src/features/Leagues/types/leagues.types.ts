@@ -89,6 +89,7 @@ export const LeagueSchema = z.object({
   taken_players: z.array(TakenPlayerSchema).optional(),
   draft_picks: z.array(DraftPickSchema).optional(),
   teams: z.array(LeagueTeamSchema).optional(),
+  draftStateJson: z.unknown().optional(),
   isDefault: z.boolean().default(false),
   categoryWeights: z.record(z.string(), z.number()).optional(),
   minorLeagueSlotsPerTeam: z.number().int().min(0).optional(),

@@ -268,4 +268,95 @@ describeWithMongo('LeaguesService', () => {
     ]);
     expect(reloaded?.taken_players).toEqual([['player-2', 'team-1', 'DRAFT', 5]]);
   });
+
+  it('stores draftStateJson on the matching league without affecting other leagues', async () => {
+    const firstExternalId = `${testPrefix}-draft-json-1`;
+    const secondExternalId = `${testPrefix}-draft-json-2`;
+
+    await service.upsertLeague({
+      externalId: firstExternalId,
+      name: 'Draft Json League 1',
+      description: 'league 1',
+      format: 'roto',
+      draftType: 'auction',
+      battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
+      pitchingCategories: ['W', 'SV', 'K', 'ERA', 'WHIP'],
+      rosterSlots: {
+        C: 1,
+        '1B': 1,
+        '2B': 1,
+        '3B': 1,
+        CI: 0,
+        MI: 0,
+        SS: 1,
+        OF: 3,
+        SP: 5,
+        RP: 2,
+        UTIL: 0,
+        BENCH: 0,
+      },
+      totalBudget: 260,
+      taken_players: [['player-1', 'team-1', 'DRAFT', 25]],
+      draft_picks: [[1, 'team-1', 'team-1', 'player-1', 25]],
+      teams: [['team-1', 'Team 1', 235]],
+      draftStateJson: {
+        league: { externalId: firstExternalId },
+        teams: [{ teamId: 'team-1', budgetRemaining: 235 }],
+        players: [{ playerId: 'player-1', purchasePrice: 25 }],
+        draftPicks: [{ pickNumber: 1 }],
+      },
+      isDefault: false,
+    });
+
+    await service.upsertLeague({
+      externalId: secondExternalId,
+      name: 'Draft Json League 2',
+      description: 'league 2',
+      format: 'roto',
+      draftType: 'auction',
+      battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
+      pitchingCategories: ['W', 'SV', 'K', 'ERA', 'WHIP'],
+      rosterSlots: {
+        C: 1,
+        '1B': 1,
+        '2B': 1,
+        '3B': 1,
+        CI: 0,
+        MI: 0,
+        SS: 1,
+        OF: 3,
+        SP: 5,
+        RP: 2,
+        UTIL: 0,
+        BENCH: 0,
+      },
+      totalBudget: 260,
+      taken_players: [],
+      draft_picks: [],
+      teams: [['team-2', 'Team 2', 260]],
+      draftStateJson: {
+        league: { externalId: secondExternalId },
+        teams: [{ teamId: 'team-2', budgetRemaining: 260 }],
+        players: [],
+        draftPicks: [],
+      },
+      isDefault: false,
+    });
+
+    const firstLeague = await service.getLeagueByExternalId(firstExternalId);
+    const secondLeague = await service.getLeagueByExternalId(secondExternalId);
+
+    expect(firstLeague?.draftStateJson).toEqual({
+      league: { externalId: firstExternalId },
+      teams: [{ teamId: 'team-1', budgetRemaining: 235 }],
+      players: [{ playerId: 'player-1', purchasePrice: 25 }],
+      draftPicks: [{ pickNumber: 1 }],
+    });
+    expect(secondLeague?.draftStateJson).toEqual({
+      league: { externalId: secondExternalId },
+      teams: [{ teamId: 'team-2', budgetRemaining: 260 }],
+      players: [],
+      draftPicks: [],
+    });
+  });
 });
