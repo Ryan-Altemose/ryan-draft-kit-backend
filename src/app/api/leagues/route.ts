@@ -63,7 +63,14 @@ export async function POST(request: Request) {
     const payload = LeagueSchema.parse(await request.json());
     const league = await leaguesService.upsertLeague(userId, payload);
 
-    return NextResponse.json({ success: true, data: league });
+    return NextResponse.json({
+      success: true,
+      data: league,
+      debug: {
+        receivedHasDraftStateJson: Boolean(payload.draftStateJson),
+        savedHasDraftStateJson: Boolean(league.draftStateJson),
+      },
+    });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

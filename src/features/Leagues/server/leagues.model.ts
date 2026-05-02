@@ -165,6 +165,9 @@ const leagueSchema = new Schema<LeagueDocument>(
         message: 'teams must be [team_id, team_name, current_budget] tuples',
       },
     },
+    draftStateJson: {
+      type: Schema.Types.Mixed,
+    },
     isDefault: {
       type: Boolean,
       default: false,

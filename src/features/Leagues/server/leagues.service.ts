@@ -4,6 +4,57 @@ import { LeagueModel } from './leagues.model';
 import type { League, LeagueFilters } from '../types/leagues.types';
 import type { LeagueInput } from '../types/leagues.types';
 
+function buildLeagueUpdate(
+  userId: string,
+  leagueData: LeagueInput,
+): Record<string, unknown> {
+  const update: Record<string, unknown> = {
+    userId,
+    externalId: leagueData.externalId,
+    name: leagueData.name,
+    format: leagueData.format,
+    draftType: leagueData.draftType,
+    battingCategories: leagueData.battingCategories,
+    pitchingCategories: leagueData.pitchingCategories,
+    rosterSlots: leagueData.rosterSlots,
+    isDefault: leagueData.isDefault,
+  };
+
+  if (leagueData.description !== undefined) {
+    update.description = leagueData.description;
+  }
+
+  if (leagueData.totalBudget !== undefined) {
+    update.totalBudget = leagueData.totalBudget;
+  }
+
+  if (leagueData.taken_players !== undefined) {
+    update.taken_players = leagueData.taken_players;
+  }
+
+  if (leagueData.draft_picks !== undefined) {
+    update.draft_picks = leagueData.draft_picks;
+  }
+
+  if (leagueData.teams !== undefined) {
+    update.teams = leagueData.teams;
+  }
+
+  if (leagueData.draftStateJson !== undefined) {
+    update.draftStateJson = leagueData.draftStateJson;
+  }
+
+  if (leagueData.categoryWeights !== undefined) {
+    update.categoryWeights = leagueData.categoryWeights;
+  }
+
+  if (leagueData.minorLeagueSlotsPerTeam !== undefined) {
+    update.minorLeagueSlotsPerTeam = leagueData.minorLeagueSlotsPerTeam;
+  }
+
+  return update;
+}
+
 export class LeaguesService {
   async getLeagues(userId: string, filters: LeagueFilters = {}) {
     const {
@@ -105,13 +156,29 @@ export class LeaguesService {
     userId: string,
     leagueData: LeagueInput,
   ): Promise<League> {
-    const updated = await LeagueModel.findOneAndUpdate(
-      { externalId: leagueData.externalId, userId },
-      { $set: { ...leagueData, userId } },
-      { upsert: true, new: true, runValidators: true },
-    ).lean();
+    const filter = { externalId: leagueData.externalId, userId };
+    const update = buildLeagueUpdate(userId, leagueData);
 
-    return updated as unknown as League;
+    await LeagueModel.findOneAndUpdate(
+      { externalId: leagueData.externalId, userId },
+      { $set: update },
+      { upsert: true, new: true, runValidators: true },
+    );
+
+    let persisted = (await LeagueModel.findOne(filter).lean()) as League | null;
+
+    if (
+      leagueData.draftStateJson !== undefined &&
+      persisted &&
+      persisted.draftStateJson === undefined
+    ) {
+      await LeagueModel.updateOne(filter, {
+        $set: { draftStateJson: leagueData.draftStateJson },
+      });
+      persisted = (await LeagueModel.findOne(filter).lean()) as League | null;
+    }
+
+    return persisted as League;
   }
 
   async upsertLeagues(
@@ -121,7 +188,7 @@ export class LeaguesService {
     const operations = leagues.map((league) => ({
       updateOne: {
         filter: { externalId: league.externalId, userId },
-        update: { $set: { ...league, userId } },
+        update: { $set: buildLeagueUpdate(userId, league) },
         upsert: true,
       },
     }));

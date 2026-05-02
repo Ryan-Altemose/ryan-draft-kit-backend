@@ -20,7 +20,7 @@ npm install
 cp .env.example .env.local
 
 # Run
-npm run dev              # Dev server (http://localhost:3001)
+npm run dev              # Dev server (http://localhost:3002)
 npm run build            # Production build
 npm start                # Production server
 npm test                 # Run tests
