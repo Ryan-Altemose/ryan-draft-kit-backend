@@ -42,8 +42,7 @@ function loadLocalMongoEnv() {
 describeWithMongo('LeaguesService', () => {
   const service = new LeaguesService();
   const testPrefix = 'vitest-league-service';
-  let primaryUserId = '';
-  let secondaryUserId = '';
+  const searchToken = testPrefix.replace(/-/g, '');
 
   beforeAll(async () => {
     loadLocalMongoEnv();
@@ -127,8 +126,8 @@ describeWithMongo('LeaguesService', () => {
     await service.upsertLeagues(primaryUserId, [
       {
         externalId: `${testPrefix}-default`,
-        name: `${testPrefix} Default League`,
-        description: `${testPrefix} default`,
+        name: `${searchToken} Default League`,
+        description: `${searchToken} default`,
         format: 'roto',
         draftType: 'auction',
         battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
@@ -152,8 +151,8 @@ describeWithMongo('LeaguesService', () => {
       },
       {
         externalId: `${testPrefix}-snake`,
-        name: `${testPrefix} Snake League`,
-        description: `${testPrefix} snake`,
+        name: `${searchToken} Snake League`,
+        description: `${searchToken} snake`,
         format: 'roto',
         draftType: 'snake',
         battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
@@ -181,7 +180,7 @@ describeWithMongo('LeaguesService', () => {
       format: 'roto',
       draftType: 'auction',
       isDefault: true,
-      search: testPrefix,
+      search: searchToken,
       page: 1,
       limit: 10,
     });
