@@ -68,10 +68,10 @@ export const TakenPlayerBaseSchema = z.tuple([
   z.number().min(0), // price
 ]);
 
-export const TakenPlayerSchema = z.union([
+export const TakenPlayerSchema = z.preprocess(
+  (val) => (Array.isArray(val) && val.length > 4 ? val.slice(0, 4) : val),
   TakenPlayerBaseSchema,
-  z.tuple([...TakenPlayerBaseSchema.items, DraftPickMetaSchema]),
-]);
+);
 
 export const DraftPickSchema = z.tuple([
   z.number().int().min(1),   // pick number
