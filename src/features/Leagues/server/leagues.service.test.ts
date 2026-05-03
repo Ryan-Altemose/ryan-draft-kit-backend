@@ -43,6 +43,8 @@ describeWithMongo('LeaguesService', () => {
   const service = new LeaguesService();
   const testPrefix = 'vitest-league-service';
   const searchToken = testPrefix.replace(/-/g, '');
+  let primaryUserId: string;
+  let secondaryUserId: string;
 
   beforeAll(async () => {
     loadLocalMongoEnv();
