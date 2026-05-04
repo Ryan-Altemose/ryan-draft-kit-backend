@@ -20,7 +20,8 @@ function isValidTakenPlayers(value: unknown): boolean {
     );
   }
 
-  return value.every(
+  if (
+    !value.every(
     (entry) =>
       Array.isArray(entry) &&
       (entry.length === 4 || entry.length === 5) &&
@@ -30,7 +31,20 @@ function isValidTakenPlayers(value: unknown): boolean {
       typeof entry[3] === 'number' &&
       entry[3] >= 0 &&
       (entry.length === 4 || isValidDraftPickMeta(entry[4])),
-  );
+    )
+  ) {
+    return false;
+  }
+
+  const playerIds = new Set<string>();
+
+  for (const entry of value) {
+    const playerId = entry[0] as string;
+    if (playerIds.has(playerId)) return false;
+    playerIds.add(playerId);
+  }
+
+  return true;
 }
 
 function isValidDraftPicks(value: unknown): boolean {
