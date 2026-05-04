@@ -103,6 +103,7 @@ export const LeagueSchema = z.object({
   isDefault: z.boolean().default(false),
   categoryWeights: z.record(z.string(), z.number()).optional(),
   minorLeagueSlotsPerTeam: z.number().int().min(0).optional(),
+  taxiSquadPlayersPerTeam: z.number().int().min(0).optional(),
 });
 
 export const LeagueFiltersSchema = z.object({

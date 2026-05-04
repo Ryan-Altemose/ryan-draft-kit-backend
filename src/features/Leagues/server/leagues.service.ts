@@ -48,6 +48,10 @@ function buildLeagueUpdate(
     update.minorLeagueSlotsPerTeam = leagueData.minorLeagueSlotsPerTeam;
   }
 
+  if (leagueData.taxiSquadPlayersPerTeam !== undefined) {
+    update.taxiSquadPlayersPerTeam = leagueData.taxiSquadPlayersPerTeam;
+  }
+
   return update;
 }
 
