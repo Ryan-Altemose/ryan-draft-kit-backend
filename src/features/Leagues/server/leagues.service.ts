@@ -36,6 +36,10 @@ function buildLeagueUpdate(
     update.draft_picks = leagueData.draft_picks;
   }
 
+  if (leagueData.drafts !== undefined) {
+    update.drafts = leagueData.drafts;
+  }
+
   if (leagueData.teams !== undefined) {
     update.teams = leagueData.teams;
   }
@@ -204,6 +208,45 @@ export class LeaguesService {
     }
 
     return null;
+  }
+
+  async finishDraftByLeagueId(
+    leagueId: string,
+    userId: string,
+    name: string,
+  ): Promise<League | null> {
+    if (!isValidObjectId(leagueId)) {
+      return null;
+    }
+
+    const league = (await LeagueModel.findOne({
+      _id: leagueId,
+      userId,
+    }).lean()) as League | null;
+
+    if (!league) {
+      const existingLeague = await LeagueModel.exists({ _id: leagueId });
+      if (existingLeague) {
+        throw new ForbiddenError('League does not belong to user');
+      }
+      return null;
+    }
+
+    const draftPicks = league.draft_picks ?? [];
+    if (draftPicks.length === 0) {
+      return league;
+    }
+
+    const updated = (await LeagueModel.findOneAndUpdate(
+      { _id: leagueId, userId },
+      {
+        $push: { drafts: { name, draft_picks: draftPicks } },
+        $set: { draft_picks: [] },
+      },
+      { new: true, runValidators: true },
+    ).lean()) as League | null;
+
+    return updated;
   }
 }
 

@@ -300,6 +300,175 @@ describeWithMongo('LeaguesService', () => {
     expect(reloaded?.taken_players).toEqual([['player-2', 'team-1', 'DRAFT', 5]]);
   });
 
+  it('does not wipe drafts when omitted from update payload', async () => {
+    const externalId = `${testPrefix}-preserve-drafts`;
+
+    await service.upsertLeague(primaryUserId, {
+      externalId,
+      name: 'Preserve Drafts League',
+      description: 'preserve drafts regression test',
+      format: 'roto',
+      draftType: 'auction',
+      battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
+      pitchingCategories: ['W', 'SV', 'K', 'ERA', 'WHIP'],
+      rosterSlots: {
+        C: 1,
+        '1B': 1,
+        '2B': 1,
+        '3B': 1,
+        CI: 0,
+        MI: 0,
+        SS: 1,
+        OF: 3,
+        SP: 5,
+        RP: 2,
+        UTIL: 0,
+        BENCH: 0,
+      },
+      totalBudget: 260,
+      drafts: [
+        {
+          name: '2025 Season',
+          draft_picks: [[1, 'team-1', 'team-1', 'player-1', 10]],
+        },
+      ],
+      taken_players: [],
+      teams: [['team-1', 'Team 1', 250]],
+      isDefault: false,
+    });
+
+    await service.upsertLeague(primaryUserId, {
+      externalId,
+      name: 'Preserve Drafts League',
+      description: 'preserve drafts regression test',
+      format: 'roto',
+      draftType: 'auction',
+      battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
+      pitchingCategories: ['W', 'SV', 'K', 'ERA', 'WHIP'],
+      rosterSlots: {
+        C: 1,
+        '1B': 1,
+        '2B': 1,
+        '3B': 1,
+        CI: 0,
+        MI: 0,
+        SS: 1,
+        OF: 3,
+        SP: 5,
+        RP: 2,
+        UTIL: 0,
+        BENCH: 0,
+      },
+      totalBudget: 260,
+      taken_players: [['player-2', 'team-1', 'DRAFT', 5]],
+      teams: [['team-1', 'Team 1', 245]],
+      isDefault: false,
+    });
+
+    const reloaded = await service.getLeagueByExternalId(
+      externalId,
+      primaryUserId,
+    );
+    expect(reloaded?.drafts).toEqual([
+      {
+        name: '2025 Season',
+        draft_picks: [[1, 'team-1', 'team-1', 'player-1', 10]],
+      },
+    ]);
+  });
+
+  it('rejects drafts entries with invalid draft_picks', async () => {
+    await expect(
+      service.upsertLeague(primaryUserId, {
+        externalId: `${testPrefix}-invalid-drafts`,
+        name: 'Invalid Drafts League',
+        description: 'invalid drafts validation test',
+        format: 'roto',
+        draftType: 'auction',
+        battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
+        pitchingCategories: ['W', 'SV', 'K', 'ERA', 'WHIP'],
+        rosterSlots: {
+          C: 1,
+          '1B': 1,
+          '2B': 1,
+          '3B': 1,
+          CI: 0,
+          MI: 0,
+          SS: 1,
+          OF: 3,
+          SP: 5,
+          RP: 2,
+          UTIL: 0,
+          BENCH: 0,
+        },
+        totalBudget: 260,
+        drafts: [
+          {
+            name: 'Bad Season',
+            draft_picks: [[0, 'team-1', 'team-1', 'player-1', 10]] as any,
+          },
+        ],
+        taken_players: [],
+        teams: [['team-1', 'Team 1', 260]],
+        isDefault: false,
+      }),
+    ).rejects.toMatchObject({ name: 'ValidationError' });
+  });
+
+  it('can finish a draft by copying draft_picks into drafts and clearing draft_picks', async () => {
+    const created = await service.upsertLeague(primaryUserId, {
+      externalId: `${testPrefix}-finish-draft`,
+      name: 'Finish Draft League',
+      description: 'finish draft test',
+      format: 'roto',
+      draftType: 'auction',
+      battingCategories: ['R', 'HR', 'RBI', 'SB', 'AVG'],
+      pitchingCategories: ['W', 'SV', 'K', 'ERA', 'WHIP'],
+      rosterSlots: {
+        C: 1,
+        '1B': 1,
+        '2B': 1,
+        '3B': 1,
+        CI: 0,
+        MI: 0,
+        SS: 1,
+        OF: 3,
+        SP: 5,
+        RP: 2,
+        UTIL: 0,
+        BENCH: 0,
+      },
+      totalBudget: 260,
+      taken_players: [],
+      draft_picks: [
+        [1, 'team-1', 'team-1', 'player-1', 10],
+        [2, 'team-2', 'team-2', 'player-2', 7],
+      ],
+      teams: [
+        ['team-1', 'Team 1', 250],
+        ['team-2', 'Team 2', 253],
+      ],
+      isDefault: false,
+    });
+
+    const updated = await service.finishDraftByLeagueId(
+      created._id,
+      primaryUserId,
+      '2026 Season',
+    );
+
+    expect(updated?.draft_picks).toEqual([]);
+    expect(updated?.drafts).toEqual([
+      {
+        name: '2026 Season',
+        draft_picks: [
+          [1, 'team-1', 'team-1', 'player-1', 10],
+          [2, 'team-2', 'team-2', 'player-2', 7],
+        ],
+      },
+    ]);
+  });
+
   it('rejects duplicate taken_players entries for the same player', async () => {
     await expect(
       service.upsertLeague(primaryUserId, {
