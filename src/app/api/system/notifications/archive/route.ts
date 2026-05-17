@@ -11,14 +11,15 @@ export async function POST(request: Request) {
     assertApiKeyAuth(request);
 
     const payload = CreateArchivedNotificationSchema.parse(await request.json());
-    const archivedCount =
-      await notificationsService.archiveNotificationForAllUsers(payload);
+    const notification = await notificationsService.archiveNotification(payload);
 
     return NextResponse.json(
       {
         success: true,
         data: {
-          archivedCount,
+          archived: true,
+          archivedCount: 1,
+          notification,
         },
       },
       { status: 201 },

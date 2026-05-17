@@ -1,7 +1,5 @@
 import { isValidObjectId } from 'mongoose';
-import { SYSTEM_USER_EXTERNAL_ID } from '@/features/Users/server/users.service';
-import { UserModel } from '@/features/Users/server/users.model';
-import { ForbiddenError } from '@/shared/server/http-errors';
+import { NotificationDismissalModel } from './notification-dismissals.model';
 import { NotificationModel } from './notifications.model';
 import type {
   CreateArchivedNotificationInput,
@@ -10,36 +8,37 @@ import type {
 
 export class NotificationsService {
   async listNotifications(userId: string): Promise<Notification[]> {
-    return (await NotificationModel.find({ userId })
+    const dismissedNotificationIds = await NotificationDismissalModel.find(
+      { userId },
+      { notificationId: 1 },
+    ).lean();
+
+    const dismissedIds = dismissedNotificationIds.map((record) =>
+      String(record.notificationId),
+    );
+
+    return (await NotificationModel.find(
+      dismissedIds.length > 0
+        ? { _id: { $nin: dismissedIds } }
+        : {},
+    )
       .sort({ timestamp: -1, createdAt: -1 })
       .lean()) as unknown as Notification[];
   }
 
-  async archiveNotificationForAllUsers(
+  async archiveNotification(
     input: CreateArchivedNotificationInput,
-  ): Promise<number> {
-    const users = await UserModel.find(
-      { externalId: { $ne: SYSTEM_USER_EXTERNAL_ID } },
-      { _id: 1 },
-    ).lean();
-
-    if (users.length === 0) {
-      return 0;
-    }
-
+  ): Promise<Notification> {
     const timestamp = input.timestamp ?? new Date().toISOString();
 
-    await NotificationModel.insertMany(
-      users.map((user) => ({
-        userId: user._id,
-        type: input.type,
-        message: input.message,
-        data: input.data ?? {},
-        timestamp,
-      })),
-    );
+    const notification = await NotificationModel.create({
+      type: input.type,
+      message: input.message,
+      data: input.data ?? {},
+      timestamp,
+    });
 
-    return users.length;
+    return notification.toObject() as unknown as Notification;
   }
 
   async deleteNotification(
@@ -50,22 +49,28 @@ export class NotificationsService {
       return null;
     }
 
-    const notification = (await NotificationModel.findOneAndDelete({
-      _id: id,
+    const notification = await NotificationModel.findById(id).lean();
+
+    if (!notification) {
+      return null;
+    }
+
+    const existingDismissal = await NotificationDismissalModel.findOne({
       userId,
-    }).lean()) as unknown as Notification | null;
+      notificationId: id,
+    }).lean();
 
-    if (notification) {
-      return notification;
+    if (existingDismissal) {
+      return notification as Notification;
     }
 
-    const existingNotification = await NotificationModel.exists({ _id: id });
+    await NotificationDismissalModel.create({
+      userId,
+      notificationId: id,
+      dismissedAt: new Date().toISOString(),
+    });
 
-    if (existingNotification) {
-      throw new ForbiddenError('Notification does not belong to user');
-    }
-
-    return null;
+    return notification as Notification;
   }
 }
 

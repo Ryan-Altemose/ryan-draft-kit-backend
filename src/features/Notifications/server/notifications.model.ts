@@ -1,18 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
 import type { Notification } from '../types/notifications.types';
 
-type NotificationDocument = Omit<Notification, 'userId'> & {
-  userId: mongoose.Types.ObjectId | string;
-};
+type NotificationDocument = Notification;
 
 const notificationSchema = new Schema<NotificationDocument>(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
     type: {
       type: String,
       required: true,
@@ -39,7 +31,7 @@ const notificationSchema = new Schema<NotificationDocument>(
   },
 );
 
-notificationSchema.index({ userId: 1, timestamp: -1, createdAt: -1 });
+notificationSchema.index({ timestamp: -1, createdAt: -1 });
 
 export const NotificationModel: mongoose.Model<NotificationDocument> =
   mongoose.models.Notification ||
