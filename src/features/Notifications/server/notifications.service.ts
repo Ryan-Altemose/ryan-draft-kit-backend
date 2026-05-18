@@ -6,6 +6,22 @@ import type {
   Notification,
 } from '../types/notifications.types';
 
+function stripSource(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripSource);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key]) => key !== 'source')
+        .map(([key, nestedValue]) => [key, stripSource(nestedValue)]),
+    );
+  }
+
+  return value;
+}
+
 export class NotificationsService {
   async listNotifications(userId: string): Promise<Notification[]> {
     const dismissedNotificationIds = await NotificationDismissalModel.find(
@@ -30,11 +46,12 @@ export class NotificationsService {
     input: CreateArchivedNotificationInput,
   ): Promise<Notification> {
     const timestamp = input.timestamp ?? new Date().toISOString();
+    const data = stripSource(input.data ?? {}) as Record<string, unknown>;
 
     const notification = await NotificationModel.create({
       type: input.type,
       message: input.message,
-      data: input.data ?? {},
+      data,
       timestamp,
     });
 
