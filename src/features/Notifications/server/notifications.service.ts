@@ -34,9 +34,14 @@ export class NotificationsService {
     );
 
     return (await NotificationModel.find(
-      dismissedIds.length > 0
-        ? { _id: { $nin: dismissedIds } }
-        : {},
+      {
+        ...(dismissedIds.length > 0 ? { _id: { $nin: dismissedIds } } : {}),
+        $or: [
+          { targetUserIds: { $exists: false } },
+          { targetUserIds: { $size: 0 } },
+          { targetUserIds: userId },
+        ],
+      },
     )
       .sort({ timestamp: -1, createdAt: -1 })
       .lean()) as unknown as Notification[];
@@ -52,6 +57,7 @@ export class NotificationsService {
       type: input.type,
       message: input.message,
       data,
+      targetUserIds: input.targetUserIds ?? [],
       timestamp,
     });
 

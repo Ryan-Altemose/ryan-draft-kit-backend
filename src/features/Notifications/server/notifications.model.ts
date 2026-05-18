@@ -20,6 +20,11 @@ const notificationSchema = new Schema<NotificationDocument>(
       type: Schema.Types.Mixed,
       default: {},
     },
+    targetUserIds: {
+      type: [String],
+      default: [],
+      index: true,
+    },
     timestamp: {
       type: String,
       required: true,
@@ -32,6 +37,7 @@ const notificationSchema = new Schema<NotificationDocument>(
 );
 
 notificationSchema.index({ timestamp: -1, createdAt: -1 });
+notificationSchema.index({ targetUserIds: 1, timestamp: -1, createdAt: -1 });
 
 export const NotificationModel: mongoose.Model<NotificationDocument> =
   mongoose.models.Notification ||

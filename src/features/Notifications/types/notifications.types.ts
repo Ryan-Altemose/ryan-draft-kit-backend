@@ -7,6 +7,7 @@ export const NotificationSchema = z.object({
   type: z.string().trim().min(1),
   message: z.string().trim().min(1),
   data: NotificationPayloadSchema,
+  targetUserIds: z.array(z.string()).optional(),
   timestamp: z.string().datetime(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -25,6 +26,7 @@ export const CreateArchivedNotificationSchema = z.object({
   type: z.string().trim().min(1),
   message: z.string().trim().min(1),
   data: NotificationPayloadSchema.optional().default({}),
+  targetUserIds: z.array(z.string()).optional(),
   timestamp: z.string().datetime().optional(),
 });
 
