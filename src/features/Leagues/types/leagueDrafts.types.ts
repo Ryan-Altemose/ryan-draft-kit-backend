@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { DraftPickSchema, LeagueTeamSchema, TakenPlayerSchema } from './leagues.types';
 
-export const LeagueDraftSchema = z.object({
-  leagueId: z.string().min(1),
+export const LeagueDraftSnapshotSchema = z.object({
   name: z.string().min(1).trim(),
   taken_players: z.array(TakenPlayerSchema).default([]),
   draft_picks: z.array(DraftPickSchema).default([]),
   teams: z.array(LeagueTeamSchema).default([]),
   totalBudget: z.number().int().min(1).optional(),
+});
+
+export const LeagueDraftSchema = LeagueDraftSnapshotSchema.extend({
+  leagueId: z.string().min(1),
 });
 
 export const CreateLeagueDraftSchema = z.object({

@@ -29,6 +29,7 @@ npm test                 # Run tests
 Set `MONGODB_URI` and optionally `MONGODB_DB_NAME` in `.env.local`.
 Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of allowed frontend origins for browser requests.
 Set `NEXT_PUBLIC_API_KEY` to the Draft Kit service key sent in the `x-api-key` header.
+Set `API_URL` to the fantasy baseball API base URL. League import uses it to resolve player names.
 
 ## Authentication
 

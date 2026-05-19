@@ -47,10 +47,6 @@ function buildLeagueUpdate(
     update.draft_picks = leagueData.draft_picks;
   }
 
-  if (leagueData.drafts !== undefined) {
-    update.drafts = leagueData.drafts;
-  }
-
   if (leagueData.teams !== undefined) {
     update.teams = leagueData.teams;
   }
@@ -209,6 +205,7 @@ export class LeaguesService {
     }).lean()) as League | null;
 
     if (league) {
+      await LeagueDraftModel.deleteMany({ leagueId: id, userId });
       return league;
     }
 
@@ -269,9 +266,6 @@ export class LeaguesService {
     const updated = (await LeagueModel.findOneAndUpdate(
       { _id: leagueId, userId },
       {
-        $push: {
-          drafts: snapshot,
-        },
         $set: {
           draft_picks: [],
         },
