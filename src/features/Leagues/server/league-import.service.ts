@@ -19,6 +19,15 @@ type ExternalPlayersResponse = {
   };
 };
 
+function normalizePlayerName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/\p{Diacritic}+/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 function getExternalApiBaseUrl(): string {
   const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
 
@@ -140,14 +149,15 @@ function buildPlayerIdMap(
 
   const playersByName = new Map<string, ExternalPlayer[]>();
   for (const player of players) {
-    const existing = playersByName.get(player.name) ?? [];
+    const normalizedName = normalizePlayerName(player.name);
+    const existing = playersByName.get(normalizedName) ?? [];
     existing.push(player);
-    playersByName.set(player.name, existing);
+    playersByName.set(normalizedName, existing);
   }
 
   const playerIdMap = new Map<string, string>();
   for (const playerName of requestedNames) {
-    const matches = playersByName.get(playerName) ?? [];
+    const matches = playersByName.get(normalizePlayerName(playerName)) ?? [];
 
     if (matches.length === 0) {
       throw new HttpError(400, `Unknown player in import: ${playerName}`);

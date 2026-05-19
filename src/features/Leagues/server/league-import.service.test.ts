@@ -116,6 +116,57 @@ describe('mapImportedLeagueToLeagueInput', () => {
     ]);
   });
 
+  it('matches player names when accents are omitted in the import JSON', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ _id: 'player-1', name: 'Ronald Acuna Jr.' }],
+        pagination: { totalPages: 1 },
+      }),
+    });
+
+    const result = await mapImportedLeagueToLeagueInput(
+      buildImportedLeague({
+        taken_players: [
+          {
+            playerName: 'Ronald Acuña Jr.',
+            teamName: 'Team 1',
+            positionSlot: 'OF-0',
+            price: 42,
+            contract: 'A',
+          },
+        ],
+        draft_picks: [
+          {
+            pickNumber: 1,
+            nominatingTeamName: 'Team 1',
+            winningTeamName: 'Team 1',
+            playerName: 'Ronald Acuña Jr.',
+            salary: 42,
+          },
+        ],
+      }),
+    );
+
+    expect(result.taken_players).toEqual([['player-1', 'team-1', 'OF-0', 42, 'A']]);
+    expect(result.draft_picks).toEqual([[1, 'team-1', 'team-1', 'player-1', 42]]);
+  });
+
+  it('matches player names when the player API returns accents and the import does not', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ _id: 'player-1', name: 'Ronald Acuña Jr.' }],
+        pagination: { totalPages: 1 },
+      }),
+    });
+
+    const result = await mapImportedLeagueToLeagueInput(buildImportedLeague());
+
+    expect(result.taken_players).toEqual([['player-1', 'team-1', 'OF-0', 42, 'A']]);
+    expect(result.draft_picks).toEqual([[1, 'team-1', 'team-1', 'player-1', 42]]);
+  });
+
   it('rejects unknown player names', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
