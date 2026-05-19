@@ -1,9 +1,13 @@
-import { isValidObjectId } from 'mongoose';
+import { Types, isValidObjectId } from 'mongoose';
 import { ForbiddenError } from '@/shared/server/http-errors';
 import { LeagueModel } from './leagues.model';
 import { LeagueDraftModel } from './leagueDrafts.model';
 import type { League } from '../types/leagues.types';
-import type { CreateLeagueDraftInput, LeagueDraft } from '../types/leagueDrafts.types';
+import {
+  LeagueDraftSnapshotSchema,
+  type CreateLeagueDraftInput,
+  type LeagueDraft,
+} from '../types/leagueDrafts.types';
 
 function resetTeamBudgets(teams: League['teams'], totalBudget?: number): League['teams'] {
   if (!teams) return [];
@@ -15,9 +19,88 @@ function isObjectId(value: string): boolean {
   return /^[a-f0-9]{24}$/i.test(value);
 }
 
+type LeagueDraftSnapshot = Omit<LeagueDraft, '_id' | 'leagueId' | 'userId' | 'createdAt' | 'updatedAt'>;
+
+function buildDraftSnapshotSignature(draft: LeagueDraftSnapshot): string {
+  return JSON.stringify({
+    name: draft.name,
+    taken_players: draft.taken_players ?? [],
+    draft_picks: draft.draft_picks ?? [],
+    teams: draft.teams ?? [],
+    totalBudget: draft.totalBudget ?? null,
+  });
+}
+
 export class LeagueDraftsService {
+  private async migrateLegacyEmbeddedDrafts(
+    leagueId: string,
+    userId: string,
+  ): Promise<void> {
+    if (!isObjectId(leagueId) || !isValidObjectId(userId)) {
+      return;
+    }
+
+    const league = (await LeagueModel.collection.findOne({
+      _id: new Types.ObjectId(leagueId),
+      userId: new Types.ObjectId(userId),
+    })) as ({ drafts?: unknown[] } & Record<string, unknown>) | null;
+
+    const legacyDrafts = Array.isArray(league?.drafts) ? league.drafts : [];
+    if (legacyDrafts.length === 0) {
+      return;
+    }
+
+    const parsedDrafts = legacyDrafts
+      .map((draft) => LeagueDraftSnapshotSchema.safeParse(draft))
+      .filter((result) => result.success)
+      .map((result) => result.data);
+
+    const existingDrafts = ((await LeagueDraftModel.find({
+      leagueId,
+      userId,
+    }).lean()) as unknown) as LeagueDraft[];
+    const existingSignatures = new Set(
+      existingDrafts.map((draft) =>
+        buildDraftSnapshotSignature({
+          name: draft.name,
+          taken_players: draft.taken_players ?? [],
+          draft_picks: draft.draft_picks ?? [],
+          teams: draft.teams ?? [],
+          totalBudget: draft.totalBudget,
+        }),
+      ),
+    );
+
+    const draftsToInsert = parsedDrafts.filter((draft) => {
+      const signature = buildDraftSnapshotSignature(draft);
+      if (existingSignatures.has(signature)) {
+        return false;
+      }
+      existingSignatures.add(signature);
+      return true;
+    });
+
+    if (draftsToInsert.length > 0) {
+      await LeagueDraftModel.insertMany(
+        draftsToInsert.map((draft) => ({
+          userId,
+          leagueId,
+          ...draft,
+        })),
+      );
+    }
+
+    await LeagueModel.updateOne(
+      { _id: leagueId, userId },
+      { $unset: { drafts: 1 } },
+      { strict: false },
+    );
+  }
+
   async listDrafts(leagueId: string, userId: string): Promise<LeagueDraft[]> {
     if (!isObjectId(leagueId)) return [];
+
+    await this.migrateLegacyEmbeddedDrafts(leagueId, userId);
 
     const drafts = await LeagueDraftModel.find({ leagueId, userId })
       .sort({ createdAt: -1 })
@@ -89,6 +172,8 @@ export class LeagueDraftsService {
       if (existingLeague) throw new ForbiddenError('League does not belong to user');
       throw new Error('League not found');
     }
+
+    await this.migrateLegacyEmbeddedDrafts(leagueId, userId);
 
     const hasDraftState =
       (league.draft_picks?.length ?? 0) > 0 || (league.taken_players?.length ?? 0) > 0;
